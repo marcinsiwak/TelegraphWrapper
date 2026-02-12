@@ -16,16 +16,15 @@ let package = Package(
         )
     ],
     dependencies: [
-        // Add Telegraph here when needed, e.g.:
-        // .package(url: "https://github.com/Building42/Telegraph.git", from: "0.28.0")
+         .package(url: "https://github.com/Building42/Telegraph.git", from: "0.28.0")
     ],
     targets: [
         .target(
             name: "TelegraphObjCWrapper",
             dependencies: [
-                // "Telegraph" // Enable when adding dependency above
+                 "Telegraph"
             ],
-            path: "Sources/TelegraphObjCWrapper",
+            path: "TelegraphObjCWrapper",
             publicHeadersPath: "include"
         ),
         .testTarget(
