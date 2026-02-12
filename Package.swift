@@ -16,21 +16,13 @@ let package = Package(
         )
     ],
     dependencies: [
-         .package(url: "https://github.com/Building42/Telegraph.git", from: "0.28.0")
+        .package(url: "https://github.com/Building42/Telegraph.git", from: "0.28.0")
     ],
     targets: [
         .target(
             name: "TelegraphObjCWrapper",
-            dependencies: [
-                 "Telegraph"
-            ],
-            path: "TelegraphObjCWrapper",
-            publicHeadersPath: "include"
-        ),
-        .testTarget(
-            name: "TelegraphObjCWrapperTests",
-            dependencies: ["TelegraphObjCWrapper"],
-            path: "Tests/TelegraphObjCWrapperTests"
+            dependencies: ["Telegraph"],
+            path: "Sources/TelegraphObjCWrapper"
         )
     ]
 )
