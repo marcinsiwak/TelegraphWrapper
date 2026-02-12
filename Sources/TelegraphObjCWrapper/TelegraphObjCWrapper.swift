@@ -150,46 +150,16 @@ public typealias TelegraphRouteHandler = (TelegraphHTTPRequest) -> TelegraphHTTP
         setupServerDelegates()
     }
 
-    /// Init with TLS using a p12 certificate identity
-    @objc public init(p12URL: URL, passphrase: String) throws {
-        let identity = try CertificateIdentity(p12URL: p12URL, passphrase: passphrase)
-        self.server = Server(identity: identity)
-        super.init()
-        setupServerDelegates()
-    }
-
     // MARK: - Start / Stop
 
     @objc public func start(port: UInt16) throws {
-        try server.start(port: port)
+        try server.start(port: Endpoint.Port(port))
         delegate?.serverDidStart?(self)
     }
 
     @objc public func stop() {
         server.stop()
         delegate?.serverDidStop?(self)
-    }
-
-    // MARK: - Routing
-
-    /// Register a GET route. Handler block receives the request and returns a response.
-    @objc public func get(_ path: String, handler: @escaping (TelegraphHTTPRequest) -> TelegraphHTTPResponse) {
-        addRoute(method: .get, path: path, handler: handler)
-    }
-
-    /// Register a POST route.
-    @objc public func post(_ path: String, handler: @escaping (TelegraphHTTPRequest) -> TelegraphHTTPResponse) {
-        addRoute(method: .post, path: path, handler: handler)
-    }
-
-    /// Register a PUT route.
-    @objc public func put(_ path: String, handler: @escaping (TelegraphHTTPRequest) -> TelegraphHTTPResponse) {
-        addRoute(method: .put, path: path, handler: handler)
-    }
-
-    /// Register a DELETE route.
-    @objc public func delete(_ path: String, handler: @escaping (TelegraphHTTPRequest) -> TelegraphHTTPResponse) {
-        addRoute(method: .delete, path: path, handler: handler)
     }
 
     // MARK: - WebSocket
@@ -221,42 +191,6 @@ public typealias TelegraphRouteHandler = (TelegraphHTTPRequest) -> TelegraphHTTP
 // MARK: - Private helpers
 
 private extension TelegraphServerWrapper {
-
-    func addRoute(method: HTTPMethod, path: String, handler: @escaping TelegraphRouteHandler) {
-        routeHandlers.append((method: method, path: path, handler: handler))
-        server.route(method, path) { [weak self] request -> HTTPResponse in
-            guard let self = self else {
-                return HTTPResponse(.internalServerError)
-            }
-            let wrappedRequest = self.wrap(request: request)
-            let wrappedResponse = handler(wrappedRequest)
-            return self.unwrap(response: wrappedResponse)
-        }
-    }
-
-    func wrap(request: HTTPRequest) -> TelegraphHTTPRequest {
-        var headers: [String: String] = [:]
-        for (key, value) in request.headers {
-            headers[key.rawValue] = value.rawValue
-        }
-        return TelegraphHTTPRequest(
-            method: request.method.rawValue,
-            path: request.uri.path,
-            headers: headers
-        )
-    }
-
-    func unwrap(response: TelegraphHTTPResponse) -> HTTPResponse {
-        let status = HTTPStatusCode(rawValue: response.statusCode) ?? .ok
-        var httpResponse = HTTPResponse(status)
-        if let body = response.body {
-            httpResponse.body = body
-        }
-        for (key, value) in response.headers {
-            httpResponse.headers[HTTPHeaderName(key)] = HTTPHeaderValue(value)
-        }
-        return httpResponse
-    }
 
     func setupServerDelegates() {
         server.delegate = self
@@ -299,41 +233,5 @@ extension TelegraphServerWrapper: ServerDelegate {
         if let error = error {
             delegate?.server?(self, didFailWithError: error)
         }
-    }
-}
-
-// MARK: - ServerWebSocketDelegate
-
-extension TelegraphServerWrapper: ServerWebSocketDelegate {
-
-    public func server(_ server: Server, webSocketDidConnect webSocket: WebSocketConnection, handshake: HTTPRequest) {
-        let id = makeWebSocketID(for: webSocket)
-        let path = handshake.uri.path
-        delegate?.server?(self, webSocketDidConnect: id, path: path)
-    }
-
-    public func server(_ server: Server, webSocketDidDisconnect webSocket: WebSocketConnection, error: Error?) {
-        let key = ObjectIdentifier(webSocket)
-        let id = webSocketConnections[key]?.id ?? "unknown"
-        delegate?.server?(self, webSocketDidDisconnect: id, error: error)
-        removeWebSocket(webSocket)
-    }
-
-    public func server(_ server: Server, webSocket: WebSocketConnection, didReceiveMessage message: WebSocketMessage) {
-        let id = makeWebSocketID(for: webSocket)
-        let wrappedMessage: TelegraphWebSocketMessage
-        switch message.payload {
-        case .text(let text):
-            wrappedMessage = TelegraphWebSocketMessage(text: text)
-        case .binary(let data):
-            wrappedMessage = TelegraphWebSocketMessage(data: data)
-        default:
-            return
-        }
-        delegate?.server?(self, webSocket: id, didReceiveMessage: wrappedMessage)
-    }
-
-    public func server(_ server: Server, webSocket: WebSocketConnection, didSendMessage message: WebSocketMessage) {
-        // no-op — expose via delegate if needed
     }
 }
