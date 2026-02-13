@@ -40,7 +40,8 @@ import Telegraph
   ///   - path: The request path from the HTTP upgrade handshake.
   func telegraphServer(_ server: TGServer,
                        webSocketDidConnect webSocket: TGWebSocket,
-                       path: String)
+                       path: String,
+                       id: String)
 
   /// Called when a WebSocket client disconnects.
   /// - Parameters:
@@ -257,10 +258,12 @@ extension TGServer: ServerWebSocketDelegate {
     socketMapQueue.async(flags: .barrier) { self.socketMap[key] = wrapped }
 
     let path = handshake.uri.path
+    let id = handshake.uri.queryItems?.first(where: { $0.name == "id" })?.value ?? ""
     DispatchQueue.main.async {
       self.webSocketDelegate?.telegraphServer(self,
                                               webSocketDidConnect: wrapped,
-                                              path: path)
+                                              path: path,
+                                              id: id)
     }
   }
 
