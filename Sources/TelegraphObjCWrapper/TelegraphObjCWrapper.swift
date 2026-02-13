@@ -86,6 +86,7 @@ import Telegraph
 
   /// Delegate that receives WebSocket lifecycle and message events.
   @objc public weak var webSocketDelegate: TGServerWebSocketDelegate?
+    
 
   /// The port the server is currently listening on, or 0 if not started.
   @objc public var port: Int {
@@ -158,6 +159,10 @@ import Telegraph
     server.stop()
     socketMapQueue.async(flags: .barrier) { self.socketMap.removeAll() }
   }
+    
+    @objc public func setConcurrency(concurencyNumber: Int) {
+        server.concurrency = concurencyNumber
+    }
 
   // MARK: - HTTP Routes
 
